@@ -1,0 +1,2 @@
+the training data set has 500 images and has 5000 training labels for validation
+the testing set has 1000 images ans has 1000 labels for validation
