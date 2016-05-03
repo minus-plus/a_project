@@ -282,6 +282,7 @@ def enhancedFeatureExtractorFace(datum):
   Your feature extraction playground for faces.
   It is your choice to modify this.
   """
+  print datum
   features =  basicFeatureExtractorFace(datum)
   return features
 

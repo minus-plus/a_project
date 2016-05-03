@@ -17,6 +17,7 @@ import samples
 import sys
 import util
 import time
+import math
 from sets import Set
 TEST_SET_SIZE = 100
 DIGIT_DATUM_WIDTH=28
@@ -266,14 +267,48 @@ def contestFeatureExtractorDigit(datum):
   """
   features =  basicFeatureExtractorDigit(datum)
   return features
+def getHighlightedArea():
+    highlightedArea = util.Counter()
+    for x in range(FACE_DATUM_WIDTH):
+        for y in range(FACE_DATUM_HEIGHT):
+            highlightedArea[(x,y)] = 0
+            if math.pow(x - 29, 2) / math.pow(18, 2) + math.pow(y - 34, 2) / math.pow(25, 2) <= 1:
+                highlightedArea[(x, y)] = 1
+    """
+    for y in range(FACE_DATUM_HEIGHT):
+        for x in range(FACE_DATUM_WIDTH):
+            print '%s' % str(highlightedArea[(x,y)]),
+            #print ' '
+        print '\n'
+    """
+    return highlightedArea
+def getNewDatum(datum, hgetHighlightedArea):
+    image = util.arrayInvert(datum.getPixels())
+    width = datum.width
+    height = datum.height
+    for x in range(FACE_DATUM_WIDTH):
+        for y in range(FACE_DATUM_HEIGHT):
+            if not hgetHighlightedArea[(x, y)]:
+                image[y][x] = ' ' 
+            elif image[y][x] == 0:
+                image[y][x] = ' '
+            elif image[y][x]:
+                image[y][x] = '+'
+    
+    newDatum = samples.Datum(image, width, height)
+    return newDatum
 
 def enhancedFeatureExtractorFace(datum):
-  """
-  Your feature extraction playground for faces.
-  It is your choice to modify this.
-  """
-  features =  basicFeatureExtractorFace(datum)
-  return features
+    """
+    Your feature extraction playground for faces.
+    It is your choice to modify this.
+    """
+    features =  basicFeatureExtractorFace(datum)
+    hgetHighlightedArea = getHighlightedArea()
+    newDatum = getNewDatum(datum, hgetHighlightedArea)
+    print newDatum
+    time.sleep(0.6)
+    return features
 
 def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage):
     """
