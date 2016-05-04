@@ -12,7 +12,7 @@
 import mostFrequent
 import naiveBayes
 import perceptron
-import mira
+import svm
 import samples
 import sys
 import util
@@ -421,7 +421,7 @@ def readCommand( argv ):
   from optparse import OptionParser  
   parser = OptionParser(USAGE_STRING)
   
-  parser.add_option('-c', '--classifier', help=default('The type of classifier'), choices=['mostFrequent', 'nb', 'naiveBayes', 'perceptron', 'mira', 'minicontest'], default='mostFrequent')
+  parser.add_option('-c', '--classifier', help=default('The type of classifier'), choices=['mostFrequent', 'nb', 'naiveBayes', 'perceptron', 'svm', 'minicontest'], default='mostFrequent')
   parser.add_option('-d', '--data', help=default('Dataset to use'), choices=['digits', 'faces'], default='digits')
   parser.add_option('-t', '--training', help=default('The size of the training set'), default=100, type="int")
   parser.add_option('-f', '--features', help=default('Whether to use enhanced features'), default=False, action="store_true")
@@ -500,13 +500,13 @@ def readCommand( argv ):
         print "using smoothing parameter k=%f for naivebayes" %  options.smoothing
   elif(options.classifier == "perceptron"):
     classifier = perceptron.PerceptronClassifier(legalLabels,options.iterations)
-  elif(options.classifier == "mira"):
-    classifier = mira.MiraClassifier(legalLabels, options.iterations)
+  elif(options.classifier == "svm"):
+    classifier = svm.SVMClassifier(legalLabels, options.iterations)
     if (options.autotune):
-        print "using automatic tuning for MIRA"
+        print "using automatic tuning for SVM"
         classifier.automaticTuning = True
     else:
-        print "using default C=0.001 for MIRA"
+        print "using default C=0.001 for SVM"
   elif(options.classifier == 'minicontest'):
     import minicontest
     classifier = minicontest.contestClassifier(legalLabels)

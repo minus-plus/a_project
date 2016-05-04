@@ -1,10 +1,9 @@
+# svm implementation
 """
-Multiclass SVMs (Crammer-Singer formulation).
-A pure Python re-implementation of:
+this implementation is based on the paper:
 Large-scale Multiclass Support Vector Machine Training via Euclidean Projection onto the Simplex.
 Mathieu Blondel, Akinori Fujino, and Naonori Ueda.
 ICPR 2014.
-http://www.mblondel.org/publications/mblondel-icpr2014.pdf
 """
 
 import numpy as np
@@ -13,35 +12,6 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils import check_random_state
 from sklearn.preprocessing import LabelEncoder
 
-
-def projection_simplex(v, z=1):
-    """
-    Projection onto the simplex:
-        w^* = argmin_w 0.5 ||w-v||^2 s.t. \sum_i w_i = z, w_i >= 0
-    """
-    # For other algorithms computing the same projection, see
-    # https://gist.github.com/mblondel/6f3b7aaad90606b98f71
-    n_features = v.shape[0]
-    u = np.sort(v)[::-1]
-    cssv = np.cumsum(u) - z
-    ind = np.arange(n_features) + 1
-    cond = u - cssv / ind > 0
-    rho = ind[cond][-1]
-    theta = cssv[cond][-1] / float(rho)
-    w = np.maximum(v - theta, 0)
-    return w
-
-''' 
-note: 
-X for training data, list of samples
-y for labels
-self.coef_T
-g for partial gradient
-b for violation
-get g and then compute v
-
-    
-'''
 
 class MulticlassSVM(BaseEstimator, ClassifierMixin):
 
@@ -53,9 +23,26 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.verbose = verbose # used to control the message outputing
 
+    def projection_simplex(self, v, z=1):
+        """
+        Projection onto the simplex:
+            w^* = argmin_w 0.5 ||w-v||^2 s.t. \sum_i w_i = z, w_i >= 0
+        """
+        # For other algorithms computing the same projection, see
+        # https://gist.github.com/mblondel/6f3b7aaad90606b98f71
+        numFeatures = v.shape[0]
+        u = np.sort(v)[::-1]
+        cssv = np.cumsum(u) - z
+        ind = np.arange(numFeatures) + 1
+        cond = u - cssv / ind > 0
+        rho = ind[cond][-1]
+        theta = cssv[cond][-1] / float(rho)
+        w = np.maximum(v - theta, 0)
+        return w
+
     def _partial_gradient(self, X, y, i):
         # Partial gradient for the ith sample.
-        g = np.dot(X[i], self.coef_.T) + 1
+        g = np.dot(X[i], self.W.T) + 1
         g[y[i]] -= 1
         return g
 
@@ -63,9 +50,9 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         # Optimality violation for the ith sample.
         smallest = np.inf
         for k in xrange(g.shape[0]):
-            if k == y[i] and self.dual_coef_[k, i] >= self.C:
+            if k == y[i] and self.dual_W[k, i] >= self.C:
                 continue
-            elif k != y[i] and self.dual_coef_[k, i] >= 0:
+            elif k != y[i] and self.dual_W[k, i] >= 0:
                 continue
 
             smallest = min(smallest, g[k])
@@ -76,52 +63,55 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         # Prepare inputs to the projection.
         Ci = np.zeros(g.shape[0])
         Ci[y[i]] = self.C
-        beta_hat = norms[i] * (Ci - self.dual_coef_[:, i]) + g / norms[i]
+        beta_hat = norms[i] * (Ci - self.dual_W[:, i]) + g / norms[i]
         z = self.C * norms[i]
 
         # Compute projection onto the simplex.
-        beta = projection_simplex(beta_hat, z)
+        beta = self.projection_simplex(beta_hat, z)
 
-        return Ci - self.dual_coef_[:, i] - beta / norms[i]
+        return Ci - self.dual_W[:, i] - beta / norms[i]
 
     def fit(self, X, y):
         print 'start fiting ..'
-        n_samples, n_features = X.shape
+        numSamples, numFeatures = X.shape
+
         # X, list of samples
         # sample, list of features? value or key, I think it list of feature values
         
         
-        # n_samples, numSamples
-        # n_features, numFeatures
-        # n_classes, numLabels
+        # numSamples, numSamples
+        # numFeatures, numFeatures
+        # numClasses, numLabels
         
         # Normalize labels.
-        self._label_encoder = LabelEncoder() # labelEncoder, based on dict or hash
+        self.labelEncoder = LabelEncoder() # labelEncoder, based on dict or hash
         # labelEncoder, first fit and then can be transform back to original label
         '''
-        fit(y)	Fit label encoder
-        fit_transform(y)	Fit label encoder and return encoded labels
-        get_params([deep])	Get parameters for this estimator.
-        inverse_transform(y)	Transform labels back to original encoding.
-        set_params(**params)	Set the parameters of this estimator.
-        transform(y)	Transform labels to normalized encoding.
+        fit(y)  Fit label encoder
+        fit_transform(y)    Fit label encoder and return encoded labels
+        get_params([deep])  Get parameters for this estimator.
+        inverse_transform(y)    Transform labels back to original encoding.
+        set_params(**params)    Set the parameters of this estimator.
+        transform(y)    Transform labels to normalized encoding.
         '''
-        y = self._label_encoder.fit_transform(y)
+        y = self.labelEncoder.fit_transform(y)
 
         # Initialize primal and dual coefficients.
-        n_classes = len(self._label_encoder.classes_) # number of labels
-        self.dual_coef_ = np.zeros((n_classes, n_samples), dtype=np.float64)
+        numClasses = len(self.labelEncoder.classes_) # number of labels
+        self.dual_W = np.zeros((numClasses, numSamples), dtype=np.float64)
         # self.dual_coef used to solve subproblem
         # m * n matrix, m = numLabels, n = numSamples
-        self.coef_ = np.zeros((n_classes, n_features))
+        self.W = np.zeros((numClasses, numFeatures))
         # m * n matrix, m = numLabels, n = numFeatures
+
+
         
         # Pre-compute norms.
         norms = np.sqrt(np.sum(X ** 2, axis=1))
 
         # Shuffle sample indices.
         rs = check_random_state(self.random_state)
-        ind = np.arange(n_samples)
+        ind = np.arange(numSamples)
         '''
         >>> np.arange(3)
         array([0, 1, 2])
@@ -132,7 +122,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         for it in xrange(self.max_iter):
             violation_sum = 0
 
-            for ii in xrange(n_samples):
+            for ii in xrange(numSamples):
                 i = ind[ii] # randomly choose a sample
                 
                 # All-zero samples can be safely ignored.
@@ -150,8 +140,8 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 delta = self._solve_subproblem(g, y, norms, i)
 
                 # Update primal and dual coefficients.
-                self.coef_ += (delta * X[i][:, np.newaxis]).T #transpose newaxis:none
-                self.dual_coef_[:, i] += delta
+                self.W += (delta * X[i][:, np.newaxis]).T #transpose newaxis:none
+                self.dual_W[:, i] += delta
 
             if it == 0:
                 violation_init = violation_sum
@@ -169,9 +159,9 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         return self
 
     def predict(self, X):
-        decision = np.dot(X, self.coef_.T)
+        decision = np.dot(X, self.W.T)
         pred = decision.argmax(axis=1)
-        return self._label_encoder.inverse_transform(pred)
+        return self.labelEncoder.inverse_transform(pred)
 
 
 if __name__ == '__main__':
@@ -181,7 +171,10 @@ if __name__ == '__main__':
     X, y = iris.data, iris.target
     print 'type of X: %s' % type(X)
     print 'type of y: %s' % type(y)
-
+    #print X
+    #print X[0]
+    #print X[0][0]
+    #print y
     clf = MulticlassSVM(C=0.1, tol=0.01, max_iter=100, random_state=0, verbose=0)
     clf.fit(X, y)
     #print clf.score(X, y)
