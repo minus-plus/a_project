@@ -6,6 +6,7 @@ Mathieu Blondel, Akinori Fujino, and Naonori Ueda.
 ICPR 2014.
 """
 import sys
+import time
 
 import numpy as np
 from numpy import linalg
@@ -17,6 +18,7 @@ from sklearn.preprocessing import LabelEncoder
 # define kernels
 def linear_kernel(x1, x2):
     return np.dot(x1, x2)
+
 def gaussian_kernel(x, y, sigma=5.0):
     return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
 
@@ -43,13 +45,19 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         theta = cssv[cond][-1] / float(rho)
         w = np.maximum(v - theta, 0)
         return w
-
+    # equation 4
     def get_partial_gradient(self, X, y, i):
         # Partial gradient for the ith sample.
+        # here self.W.T
+        numSamples = len(X)
+      
         g = np.dot(X[i], self.W.T) + 1
+        #print 'g[yi]', y[i],g[y[i]]
         g[y[i]] -= 1
+        #print g, y[i]
+        #sys.exit(1)
         return g
-
+    # equation 5
     def get_violation(self, g, y, i):
         # Optimality violation for the ith sample.
         smallest = np.inf
@@ -61,7 +69,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
             smallest = min(smallest, g[k])
 
         return g.max() - smallest
-
+    # equation 6, get delta
     def solve_subproblem(self, g, y, norms, i):
         # Prepare inputs to the projection.
         Ci = np.zeros(g.shape[0])
@@ -89,7 +97,27 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         self.alpha = np.zeros((numClasses, numSamples), dtype=np.float64)
         self.W = np.zeros((numClasses, numFeatures))
         # Pre-compute norms. what is norms for
-        norms = np.sqrt(np.sum(X ** 2, axis=1))
+        norms_1 = np.zeros((numSamples))
+
+        K = np.zeros((numSamples, numSamples))
+
+
+
+        for i in range(numSamples):
+            for j in range(numSamples):
+                K[i][j] = np.sqrt(self.kernel(X[i], X[j]))
+        for m in range(numSamples):
+            norms_1[m] = K[m][m]
+
+        '''
+        print 'length k is %s, length K[0] is %s ' % (len(K), len(K[0]))
+        print 'K[0][0] is %s' % K[0][0]
+        print K[0][1], K[1][0], K[1][1]
+        print K
+        '''
+        norms = np.sqrt(np.sum(X * X, axis=1))
+        norms = norms_1
+        self.K = K
 
         # Shuffle sample indexices.
         randomState = check_random_state(self.random_state)
@@ -105,13 +133,15 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 # ignore zero sample
                 if norms[i] == 0:
                     continue
+                # compute g_i by equation 4
                 g = self.get_partial_gradient(X, y, i)
+                # compute v_i by equation 5
                 v = self.get_violation(g, y, i)
                 violation_sum += v
                 if v < 1e-12:
                     continue
                 # Solve subproblem for the ith sample.
-                # here is delta_i
+                # compute delta_i by equation 6
                 delta = self.solve_subproblem(g, y, norms, i)
                 self.alpha[:, i] += delta    
 
@@ -119,6 +149,9 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 # w(alpha_i) = delta_i * x_i
                 self.W += (self.alpha[:, i] * X[i][:, np.newaxis]).T #transpose newaxis:none
                 #slef.W = 
+                #print self.W.shape
+                #print self.alpha.shape
+                #print X[i]
                 # alpha_i = delta_i + delta_i
             if it == 0:
                 violation_init = violation_sum

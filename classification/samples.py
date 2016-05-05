@@ -108,9 +108,6 @@ def loadDataFile(filename, n,width,height):
   for i in range(n):
     data = []
     for j in range(height):
-      if not fin:
-        print 'i is %s, j is %s' % (i, j)
-        sys.exit(1)
       data.append(list(fin.pop()))
     
     if len(data[0]) < DATUM_WIDTH-1:
