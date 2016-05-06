@@ -5,7 +5,11 @@ Large-scale Multiclass Support Vector Machine Training via Euclidean Projection 
 Mathieu Blondel, Akinori Fujino, and Naonori Ueda.
 ICPR 2014.
 """
-# working on gaussian kernel
+# polynomial kernel works better, gaussian kernel need to tune
+#
+#
+#
+
 import sys
 import time
 
@@ -21,9 +25,9 @@ def linear_kernel(x1, x2):
     return np.dot(x1, x2)
 
 sigma_list = [0.1, 0.5, 1, 1.5, 2, 3, 4, 5]
-def gaussian_kernel(x, y, sigma=10):
-    return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
-  
+def gaussian_kernel(x, y, sigma=10, gamma=0.05):
+    #return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
+    return np.exp(gamma * (-linalg.norm(x - y) ** 2))
 def polynomial_kernel(x, y, p=1.5):
     return (1 + np.dot(x, y)) ** p
 
@@ -39,6 +43,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.verbose = verbose # used to control the message outputing
         self.kernel = gaussian_kernel
+
     def get_kernel_matrix(self, X1, X2):
         K = np.zeros(((len(X1), len(X2))))
         for i in range(len(X1)):
