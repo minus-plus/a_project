@@ -21,6 +21,7 @@ def linear_kernel(x1, x2):
 
 def gaussian_kernel(x, y, sigma=5):
     return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
+  
 
 def polynomial_kernel(x, y, p=3):
     return (1 + np.dot(x, y)) ** p
@@ -28,16 +29,22 @@ def polynomial_kernel(x, y, p=3):
 
 class MulticlassSVM(BaseEstimator, ClassifierMixin):
 
-    def __init__(self, C=1, max_iteration=50, tolorance=0.05,
+    def __init__(self, C=1, max_iteration=50, tolorance=0.0005,
                  random_state=None, verbose=0):
         max_iteration = 200
         verbose = 1
         self.C = C
         self.max_iteration = max_iteration
-        self.tolorance = tolorance
+        self.tolorance = 1e-8
         self.random_state = random_state
         self.verbose = verbose # used to control the message outputing
         self.kernel = linear_kernel
+    def get_kernel_matrix(self, X1, X2):
+        K = np.zeros(((len(X1), len(X2))))
+        for i in range(len(X1)):
+            for j in range(len(X2)):
+                K[i][j] = self.kernel(X1[i], X2[j])
+        return K
 
     def projection_simplex(self, v, z=1):
 
@@ -82,14 +89,13 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         Ci[y[i]] = self.C
         beta_hat = norms[i] * (Ci - self.alpha[:, i]) + g / norms[i]
         z = self.C * norms[i]
-
         # Compute projection onto the simplex.
         beta = self.projection_simplex(beta_hat, z)
-
         return Ci - self.alpha[:, i] - beta / norms[i]
 
     def fit(self, X, y):
         numSamples, numFeatures = X.shape
+        self.X = X
         # Normalize labels.
         #K = np.zeros(numSamples, numSamples)
         self.labelEncoder = LabelEncoder() 
@@ -102,7 +108,6 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
  
         # pre-compute kernel matrix
         norms = np.zeros((numSamples))
-        norms_1 = np.zeros(numSamples)
 
         K = np.zeros((numSamples, numSamples))
         for i in range(numSamples):
@@ -110,16 +115,11 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 K[i][j] = self.kernel(X[i], X[j])
 
         # Pre-compute norms. what is norms for
-        norms = np.sqrt(np.sum(X * X, axis=1))
-        print(X).shape
-        self.K = K
+        self.K = self.get_kernel_matrix(X, X)
 
         for s in range(numSamples):
-            norms_1[s] = np.sqrt(K[i][i])
-        norms = norms_1
-        #print K.shape
-        #print norms.shape
-        # Shuffle sample indexices.
+            norms[s] = np.sqrt(K[i][i])
+
         randomState = check_random_state(self.random_state)
         index = np.arange(numSamples)
         randomState.shuffle(index)
@@ -160,7 +160,12 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         return self
 
     def predict(self, X):
+
         decision = np.dot(X, self.W.T)
-        pred = decision.argmax(axis=1)
+        K = self.get_kernel_matrix(X, self.X) # 50 * 451
+        decision_1 = np.dot(K, self.alpha.T) # 50 * 451 dot 2 * 451.T --> 50 * 2
+        #print self.alpha.shape, K.shape, decision.shape, X.shape
+        #print decision.shape
+        pred = decision_1.argmax(axis=1)
         return self.labelEncoder.inverse_transform(pred)
 
