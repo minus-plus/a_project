@@ -21,7 +21,7 @@ def linear_kernel(x1, x2):
 
 def gaussian_kernel(x, y, sigma=5.0):
     return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
-    
+
 def polynomial_kernel(x, y, p=3):
     return (1 + np.dot(x, y)) ** p
 
@@ -30,6 +30,8 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
 
     def __init__(self, C=1, max_iteration=50, tolorance=0.05,
                  random_state=None, verbose=0):
+        max_iteration = 50
+        verbose = 1
         self.C = C
         self.max_iteration = max_iteration
         self.tolorance = tolorance
@@ -87,9 +89,6 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
         numSamples, numFeatures = X.shape
-
-        # X, list of samples
-
         # Normalize labels.
         #K = np.zeros(numSamples, numSamples)
         self.labelEncoder = LabelEncoder() 
@@ -99,27 +98,17 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         numClasses = len(self.labelEncoder.classes_)
         self.alpha = np.zeros((numClasses, numSamples), dtype=np.float64)
         self.W = np.zeros((numClasses, numFeatures))
-        # Pre-compute norms. what is norms for
-        norms_1 = np.zeros((numSamples))
-
+ 
+        # pre-compute kernel matrix
         K = np.zeros((numSamples, numSamples))
-
-
-
         for i in range(numSamples):
             for j in range(numSamples):
                 K[i][j] = np.sqrt(self.kernel(X[i], X[j]))
-        for m in range(numSamples):
-            norms_1[m] = K[m][m]
 
-        '''
-        print 'length k is %s, length K[0] is %s ' % (len(K), len(K[0]))
-        print 'K[0][0] is %s' % K[0][0]
-        print K[0][1], K[1][0], K[1][1]
-        print K
-        '''
+        # Pre-compute norms. what is norms for
+        norms = np.zeros((numSamples))
         norms = np.sqrt(np.sum(X * X, axis=1))
-        norms = norms_1
+
         self.K = K
 
         # Shuffle sample indexices.
@@ -131,8 +120,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         for it in xrange(self.max_iteration):
             violation_sum = 0
             for ind in xrange(numSamples):
-                i = index[ind] # randomly choose a sample
-                
+                i = index[ind]
                 # ignore zero sample
                 if norms[i] == 0:
                     continue
@@ -147,15 +135,8 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 # compute delta_i by equation 6
                 delta = self.solve_subproblem(g, y, norms, i)
                 self.alpha[:, i] += delta    
+                self.W += (delta * X[i][:, np.newaxis]).T #transpose newaxis:none
 
-                # Update primal and dual coefficients.
-                # w(alpha_i) = delta_i * x_i
-                self.W += (self.alpha[:, i] * X[i][:, np.newaxis]).T #transpose newaxis:none
-                #slef.W = 
-                #print self.W.shape
-                #print self.alpha.shape
-                #print X[i]
-                # alpha_i = delta_i + delta_i
             if it == 0:
                 violation_init = violation_sum
             vratio = violation_sum / violation_init
