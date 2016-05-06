@@ -16,7 +16,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils import check_random_state
 from sklearn.preprocessing import LabelEncoder
 
-# define kernels
+# define kernels 
 def linear_kernel(x1, x2):
     return np.dot(x1, x2)
 
