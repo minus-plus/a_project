@@ -22,23 +22,22 @@ def linear_kernel(x1, x2):
 def gaussian_kernel(x, y, sigma=5):
     return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
   
-
-def polynomial_kernel(x, y, p=3):
+def polynomial_kernel(x, y, p=1.5):
     return (1 + np.dot(x, y)) ** p
 
 
 class MulticlassSVM(BaseEstimator, ClassifierMixin):
-
     def __init__(self, C=1, max_iteration=50, tolorance=0.0005,
                  random_state=None, verbose=0):
         max_iteration = 200
         verbose = 1
+        C = 1
         self.C = C
         self.max_iteration = max_iteration
         self.tolorance = 1e-8
         self.random_state = random_state
         self.verbose = verbose # used to control the message outputing
-        self.kernel = linear_kernel
+        self.kernel = polynomial_kernel
     def get_kernel_matrix(self, X1, X2):
         K = np.zeros(((len(X1), len(X2))))
         for i in range(len(X1)):
@@ -105,15 +104,12 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         numClasses = len(self.labelEncoder.classes_)
         self.alpha = np.zeros((numClasses, numSamples), dtype=np.float64)
         self.W = np.zeros((numClasses, numFeatures))
- 
         # pre-compute kernel matrix
         norms = np.zeros((numSamples))
-
         K = np.zeros((numSamples, numSamples))
         for i in range(numSamples):
             for j in range(numSamples):
                 K[i][j] = self.kernel(X[i], X[j])
-
         # Pre-compute norms. what is norms for
         self.K = self.get_kernel_matrix(X, X)
 
@@ -164,8 +160,6 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         decision = np.dot(X, self.W.T)
         K = self.get_kernel_matrix(X, self.X) # 50 * 451
         decision_1 = np.dot(K, self.alpha.T) # 50 * 451 dot 2 * 451.T --> 50 * 2
-        #print self.alpha.shape, K.shape, decision.shape, X.shape
-        #print decision.shape
         pred = decision_1.argmax(axis=1)
         return self.labelEncoder.inverse_transform(pred)
 
