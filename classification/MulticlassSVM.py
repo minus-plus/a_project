@@ -54,11 +54,11 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
     def get_partial_gradient(self, X, y, i):
         # Partial gradient for the ith sample.
         #print self.alpha.shape, X.shape, self.W.shape
-        W = np.dot(self.alpha, X)
+        #W = np.dot(self.alpha, X)
         g_i = np.dot(self.alpha, self.K[:, i]) + 1
 
-        g = np.dot(X[i], self.W.T) + 1
-        g[y[i]] -= 1
+        #g = np.dot(X[i], W.T) + 1
+        #g[y[i]] -= 1
         g_i[y[i]] -= 1
         # print g
         # print g_i
@@ -101,17 +101,22 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         self.W = np.zeros((numClasses, numFeatures))
  
         # pre-compute kernel matrix
+        norms = np.zeros((numSamples))
+        norms_1 = np.zeros(numSamples)
+
         K = np.zeros((numSamples, numSamples))
         for i in range(numSamples):
             for j in range(numSamples):
                 K[i][j] = self.kernel(X[i], X[j])
 
-
         # Pre-compute norms. what is norms for
-        norms = np.zeros((numSamples))
         norms = np.sqrt(np.sum(X * X, axis=1))
-
+        print(X).shape
         self.K = K
+
+        for s in range(numSamples):
+            norms_1[s] = np.sqrt(K[i][i])
+        norms = norms_1
         #print K.shape
         #print norms.shape
         # Shuffle sample indexices.
@@ -138,7 +143,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 # compute delta_i by equation 6
                 delta = self.solve_subproblem(g, y, norms, i)
                 self.alpha[:, i] += delta    
-                self.W += (delta * X[i][:, np.newaxis]).T #transpose newaxis:none
+                #self.W = np.dot(self.alpha, X) #transpose newaxis:none
 
             if it == 0:
                 violation_init = violation_sum
@@ -151,7 +156,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 if self.verbose >= 1:
                     print "Converged"
                 break
-
+        self.W = np.dot(self.alpha, X) #transpose newaxis:none
         return self
 
     def predict(self, X):
