@@ -5,6 +5,7 @@ Large-scale Multiclass Support Vector Machine Training via Euclidean Projection 
 Mathieu Blondel, Akinori Fujino, and Naonori Ueda.
 ICPR 2014.
 """
+# working on gaussian kernel
 import sys
 import time
 
