@@ -30,7 +30,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
 
     def __init__(self, C=1, max_iteration=50, tolorance=0.05,
                  random_state=None, verbose=0):
-        max_iteration = 50
+        max_iteration = 200
         verbose = 1
         self.C = C
         self.max_iteration = max_iteration
@@ -53,15 +53,16 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
     # equation 4
     def get_partial_gradient(self, X, y, i):
         # Partial gradient for the ith sample.
-        # here self.W.T
-        numSamples = len(X)
-      
+        #print self.alpha.shape, X.shape, self.W.shape
+        W = np.dot(self.alpha, X)
+        g_i = np.dot(self.alpha, self.K[:, i]) + 1
+
         g = np.dot(X[i], self.W.T) + 1
-        #print 'g[yi]', y[i],g[y[i]]
         g[y[i]] -= 1
-        #print g, y[i]
-        #sys.exit(1)
-        return g
+        g_i[y[i]] -= 1
+        # print g
+        # print g_i
+        return g_i
     # equation 5
     def get_violation(self, g, y, i):
         # Optimality violation for the ith sample.
@@ -105,12 +106,14 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
             for j in range(numSamples):
                 K[i][j] = self.kernel(X[i], X[j])
 
+
         # Pre-compute norms. what is norms for
         norms = np.zeros((numSamples))
         norms = np.sqrt(np.sum(X * X, axis=1))
 
         self.K = K
-
+        #print K.shape
+        #print norms.shape
         # Shuffle sample indexices.
         randomState = check_random_state(self.random_state)
         index = np.arange(numSamples)
