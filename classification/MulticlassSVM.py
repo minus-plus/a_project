@@ -103,7 +103,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         K = np.zeros((numSamples, numSamples))
         for i in range(numSamples):
             for j in range(numSamples):
-                K[i][j] = np.sqrt(self.kernel(X[i], X[j]))
+                K[i][j] = self.kernel(X[i], X[j])
 
         # Pre-compute norms. what is norms for
         norms = np.zeros((numSamples))
