@@ -25,7 +25,6 @@ def gaussian_kernel(x, y, sigma=5):
 def polynomial_kernel(x, y, p=1.5):
     return (1 + np.dot(x, y)) ** p
 
-
 class MulticlassSVM(BaseEstimator, ClassifierMixin):
     def __init__(self, C=1, max_iteration=50, tolorance=0.0005,
                  random_state=None, verbose=0):
@@ -59,16 +58,10 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
     # equation 4
     def get_partial_gradient(self, X, y, i):
         # Partial gradient for the ith sample.
-        #print self.alpha.shape, X.shape, self.W.shape
-        #W = np.dot(self.alpha, X)
-        g_i = np.dot(self.alpha, self.K[:, i]) + 1
+        g = np.dot(self.alpha, self.K[:, i]) + 1
+        g[y[i]] -= 1
+        return g
 
-        #g = np.dot(X[i], W.T) + 1
-        #g[y[i]] -= 1
-        g_i[y[i]] -= 1
-        # print g
-        # print g_i
-        return g_i
     # equation 5
     def get_violation(self, g, y, i):
         # Optimality violation for the ith sample.
@@ -95,27 +88,24 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
     def fit(self, X, y):
         numSamples, numFeatures = X.shape
         self.X = X
-        # Normalize labels.
         #K = np.zeros(numSamples, numSamples)
         self.labelEncoder = LabelEncoder() 
         y = self.labelEncoder.fit_transform(y)
-
         # Initialize primal and dual coefficients.
         numClasses = len(self.labelEncoder.classes_)
         self.alpha = np.zeros((numClasses, numSamples), dtype=np.float64)
         self.W = np.zeros((numClasses, numFeatures))
         # pre-compute kernel matrix
         norms = np.zeros((numSamples))
+        # K-kernel matrix
         K = np.zeros((numSamples, numSamples))
         for i in range(numSamples):
             for j in range(numSamples):
                 K[i][j] = self.kernel(X[i], X[j])
         # Pre-compute norms. what is norms for
         self.K = self.get_kernel_matrix(X, X)
-
         for s in range(numSamples):
             norms[s] = np.sqrt(K[i][i])
-
         randomState = check_random_state(self.random_state)
         index = np.arange(numSamples)
         randomState.shuffle(index)
@@ -139,15 +129,11 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                 # compute delta_i by equation 6
                 delta = self.solve_subproblem(g, y, norms, i)
                 self.alpha[:, i] += delta    
-                #self.W = np.dot(self.alpha, X) #transpose newaxis:none
-
             if it == 0:
                 violation_init = violation_sum
             vratio = violation_sum / violation_init
-
             if self.verbose >= 1:
                 print "iter", it + 1, "violation", vratio
-
             if vratio < self.tolorance:
                 if self.verbose >= 1:
                     print "Converged"
@@ -156,10 +142,8 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         return self
 
     def predict(self, X):
-
-        decision = np.dot(X, self.W.T)
         K = self.get_kernel_matrix(X, self.X) # 50 * 451
-        decision_1 = np.dot(K, self.alpha.T) # 50 * 451 dot 2 * 451.T --> 50 * 2
-        pred = decision_1.argmax(axis=1)
+        decision = np.dot(K, self.alpha.T) # 50 * 451 dot 2 * 451.T --> 50 * 2
+        pred = decision.argmax(axis=1)
         return self.labelEncoder.inverse_transform(pred)
 
