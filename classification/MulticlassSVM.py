@@ -19,7 +19,7 @@ from sklearn.preprocessing import LabelEncoder
 def linear_kernel(x1, x2):
     return np.dot(x1, x2)
 
-def gaussian_kernel(x, y, sigma=5.0):
+def gaussian_kernel(x, y, sigma=5):
     return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
 
 def polynomial_kernel(x, y, p=3):
