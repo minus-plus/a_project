@@ -25,7 +25,7 @@ def linear_kernel(x1, x2):
     return np.dot(x1, x2)
 
 sigma_list = [0.1, 0.5, 1, 1.5, 2, 3, 4, 5]
-def gaussian_kernel(x, y, sigma=10, gamma=0.01):
+def gaussian_kernel(x, y, sigma=14.1, gamma=0.01):
     #return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
     return np.exp(-gamma * (np.dot((x-y), (x-y).T)))
 def polynomial_kernel(x, y, p=1.5):
@@ -36,10 +36,10 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
                  random_state=None, verbose=0):
         max_iteration = 200
         verbose = 1
-        C = 1
+        C = 2
         self.C = C
         self.max_iteration = max_iteration
-        self.tolorance = 1e-8
+        self.tolorance = tolorance
         self.random_state = random_state
         self.verbose = verbose # used to control the message outputing
         self.kernel = gaussian_kernel
