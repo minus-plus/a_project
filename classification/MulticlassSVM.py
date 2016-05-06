@@ -20,7 +20,8 @@ from sklearn.preprocessing import LabelEncoder
 def linear_kernel(x1, x2):
     return np.dot(x1, x2)
 
-def gaussian_kernel(x, y, sigma=5):
+sigma_list = [0.1, 0.5, 1, 1.5, 2, 3, 4, 5]
+def gaussian_kernel(x, y, sigma=10):
     return np.exp(-linalg.norm(x-y)**2 / (2 * (sigma ** 2)))
   
 def polynomial_kernel(x, y, p=1.5):
@@ -37,7 +38,7 @@ class MulticlassSVM(BaseEstimator, ClassifierMixin):
         self.tolorance = 1e-8
         self.random_state = random_state
         self.verbose = verbose # used to control the message outputing
-        self.kernel = polynomial_kernel
+        self.kernel = gaussian_kernel
     def get_kernel_matrix(self, X1, X2):
         K = np.zeros(((len(X1), len(X2))))
         for i in range(len(X1)):
