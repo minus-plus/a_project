@@ -493,35 +493,3 @@ class TimeoutFunction:
             signal.signal(signal.SIGALRM, old)
         signal.alarm(0)
         return result
-
-        
-def _test():
-    print "testint Counter ...."
-    c = Counter()
-    b = Counter()
-    d = Counter()
-    a = Counter()
-    for i in range(10):
-        b[i] = 2*i
-    
-  
-    c += b
-    a[1] = b
-    a[2] = c
-    print b
-    print c
-    print a
-    a += a
-    print a
-    
-if __name__=='__main__':
-    _test()
-    
-    
-    
-    
-    
-    
-    
-    
-    

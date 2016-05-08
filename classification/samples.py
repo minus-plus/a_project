@@ -7,7 +7,7 @@
 # For more info, see http://inst.eecs.berkeley.edu/~cs188/sp09/pacman.html
 
 import util
-import sys
+from random import shuffle
 
 ## Constants
 DATUM_WIDTH = 0 # in pixels
@@ -103,13 +103,11 @@ def loadDataFile(filename, n,width,height):
   DATUM_HEIGHT=height
   fin = readlines(filename)
   fin.reverse()
-
   items = []
   for i in range(n):
     data = []
     for j in range(height):
       data.append(list(fin.pop()))
-    
     if len(data[0]) < DATUM_WIDTH-1:
       # we encountered end of file...
       print "Truncating at %d examples (maximum)" % i
@@ -170,25 +168,47 @@ def convertToInteger(data):
   else:
     return map(convertToInteger, data)
 
+
+def shuffleDataAndLabel(dataFileName, labelsFileName, n, width, height):
+  total_num = 451
+  if dataFileName == "digitdata/trainingimages":
+    total_num = 5000
+  items=loadDataFile(dataFileName, total_num,width,height)
+  labels = loadLabelsFile(labelsFileName, total_num)
+
+
+  items_shuf = []
+  labels_shuf = []
+  index_shuf = range(len(items)-1)
+  shuffle(index_shuf)
+  for i in index_shuf:
+    items_shuf.append(items[i])
+    labels_shuf.append(labels[i])
+  items_out = items_shuf[:n]
+  labels_out= labels_shuf[:n]
+  return items_out, labels_out
+
+
+
+
+
 # Testing
 
 def _test():
   import doctest
   doctest.testmod() # Test the interactive sessions in function comments
-  n = 1
+  n = 2
 #  items = loadDataFile("facedata/facedatatrain", n,60,70)
 #  labels = loadLabelsFile("facedata/facedatatrainlabels", n)
   items = loadDataFile("digitdata/trainingimages", n,28,28)
   labels = loadLabelsFile("digitdata/traininglabels", n)
-  for i in range(1):
+  for i in range(n):
     print items[i]
-    print items[i]
-    print 'type is %s' % items[i].__class__
-    #print items[i].keys() / Datum object has no keys() method
-    print (items[i].height)
-    print (items[i].width)
-    print dir(items[i])
-    print items[i].getPixels()
+    print labels
+    #print (items[i].height)
+    #print (items[i].width)
+    #print dir(items[i])
+    #print items[i].getPixels()
 
 if __name__ == "__main__":
   _test()  
